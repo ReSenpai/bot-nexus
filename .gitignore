@@ -4,7 +4,7 @@ target
 *.pdb
 **/mutants.out*/
 .env
-
+.vscode
 
 # Added by cargo
 
