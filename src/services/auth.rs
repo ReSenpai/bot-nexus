@@ -1,6 +1,6 @@
 use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
-    Argon2, PasswordHasher,
+    Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
 };
 use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
@@ -55,6 +55,37 @@ pub async fn register(
     let user = user_repo::create_user(pool, email, &password_hash).await?;
 
     //    Генерируем JWT-токен.
+    let token = create_jwt(&user.id.to_string(), jwt_secret)?;
+
+    Ok(token)
+}
+
+/// Логин существующего пользователя.
+///
+/// Алгоритм:
+/// 1. Ищем пользователя по email
+/// 2. Если не нашли — Unauthorized (не говорим "email не найден"!)
+/// 3. Проверяем пароль через argon2 verify
+/// 4. Если пароль неверный — Unauthorized
+/// 5. Генерируем JWT-токен
+pub async fn login(
+    pool: &PgPool,
+    jwt_secret: &str,
+    email: &str,
+    password: &str,
+) -> Result<String, AppError> {
+    let user = user_repo::find_by_email(pool, email)
+        .await?
+        .ok_or(AppError::Unauthorized)?;
+
+    let parsed_hash = PasswordHash::new(&user.password_hash)
+        .map_err(|_| AppError::Unauthorized)?;
+
+    // Верифицируем пароль — argon2 сравнивает введённый пароль с хэшем из БД.
+    Argon2::default()
+        .verify_password(password.as_bytes(), &parsed_hash)
+        .map_err(|_| AppError::Unauthorized)?;
+
     let token = create_jwt(&user.id.to_string(), jwt_secret)?;
 
     Ok(token)
