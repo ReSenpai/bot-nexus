@@ -22,3 +22,36 @@ Content-Type: application/json
     "email": "test@example.com",
     "password": "mypassword123"
 }
+
+###
+
+### Login — правильные credentials (200 + token)
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "email": "test@example.com",
+    "password": "mypassword123"
+}
+
+###
+
+### Login — неправильный пароль (401)
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "email": "test@example.com",
+    "password": "wrong_password"
+}
+
+###
+
+### Login — несуществующий email (401)
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "email": "nobody@example.com",
+    "password": "whatever"
+}

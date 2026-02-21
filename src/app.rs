@@ -1,12 +1,10 @@
-use axum::{Router, routing::{get, post}};
-use crate::handlers;
+use axum::Router;
+use crate::routes;
 use crate::state::AppState;
 
-/// Создаёт Router приложения со всеми маршрутами.
+/// Создаёт и возвращает основной Router приложения.
 pub fn create_router() -> Router<AppState> {
     Router::new()
-        // Health-check 
-        .route("/health", get(handlers::health::health_check))
-        // Регистрация — POST /auth/register
-        .route("/auth/register", post(handlers::auth::register))
+        .merge(routes::health::router())
+        .merge(routes::auth::router())
 }
