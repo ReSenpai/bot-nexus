@@ -2,8 +2,8 @@ use sqlx::postgres::PgPoolOptions;
 use std::env;
 use tracing_subscriber::filter::EnvFilter;
 
-use rust_notest_api::app;
-use rust_notest_api::state::AppState;
+use bot_nexus::app;
+use bot_nexus::state::AppState;
 
 #[tokio::main]
 async fn main() {
@@ -30,12 +30,12 @@ async fn main() {
 
     tracing::info!("Database connection established and healthy.");
 
-    let jwt_secret = env::var("JWT_SECRET").unwrap_or_else(|_| "dev-secret-key".to_string());
+    let service_token = env::var("SERVICE_TOKEN").unwrap_or_else(|_| "dev-service-token".to_string());
 
     let app_state = AppState {
         db: pool,
-        jwt_secret,
-    };
+        service_token,
+};
 
     // Создаём роутер и передаём ему state.
     let app = app::create_router().with_state(app_state);
