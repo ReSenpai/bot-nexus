@@ -3,13 +3,16 @@ use std::env;
 use tracing_subscriber::filter::EnvFilter;
 
 mod app;
+mod dto;
+mod errors;
 mod handlers;
+mod models;
+mod repo;
 mod routes;
+mod services;
+mod state;
 
-#[derive(Clone)]
-struct AppState {
-    db: sqlx::PgPool,
-}
+use state::AppState;
 
 #[tokio::main]
 async fn main() {
@@ -36,18 +39,21 @@ async fn main() {
 
     tracing::info!("Database connection established and healthy.");
 
-    let _app_state = AppState { db: pool };
+    let jwt_secret = env::var("JWT_SECRET").unwrap_or_else(|_| "dev-secret-key".to_string());
 
-    // Создаём роутер приложения.
-    let app = app::create_router();
+    let app_state = AppState {
+        db: pool,
+        jwt_secret,
+    };
+
+    // Создаём роутер и передаём ему state.
+    let app = app::create_router().with_state(app_state);
 
     // Определяем адрес, на котором будет слушать сервер.
     let addr = "0.0.0.0:3000";
     tracing::info!("Server starting on {}", addr);
 
     // Запускаем HTTP-сервер.
-    // `tokio::net::TcpListener` — асинхронный TCP-слушатель.
-    // `axum::serve` — принимает listener и роутер, обрабатывает входящие соединения.
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .expect("Failed to bind to address");
