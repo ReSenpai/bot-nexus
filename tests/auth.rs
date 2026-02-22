@@ -1,7 +1,7 @@
 /// Интеграционные тесты для POST /auth/register и POST /auth/login.
 mod common;
 
-use rust_notest_api::app::create_router;
+use todo_api::app::create_router;
 use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
@@ -86,7 +86,7 @@ async fn register_duplicate_email_returns_409() {
 // ==================== LOGIN TESTS ====================
 
 /// Вспомогательная: регистрирует пользователя через API для тестов логина.
-async fn register_test_user(state: &rust_notest_api::state::AppState, email: &str, password: &str) {
+async fn register_test_user(state: &todo_api::state::AppState, email: &str, password: &str) {
     let app = create_router().with_state(state.clone());
     let req = Request::builder()
         .method("POST")

@@ -2,8 +2,8 @@ use sqlx::postgres::PgPoolOptions;
 use std::env;
 use tracing_subscriber::filter::EnvFilter;
 
-use rust_notest_api::app;
-use rust_notest_api::state::AppState;
+use todo_api::app;
+use todo_api::state::AppState;
 
 #[tokio::main]
 async fn main() {
