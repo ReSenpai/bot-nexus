@@ -4,7 +4,6 @@ pub mod app;
 pub mod dto;
 pub mod errors;
 pub mod handlers;
-pub mod middleware;
 pub mod models;
 pub mod repo;
 pub mod routes;
