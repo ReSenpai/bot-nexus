@@ -1,7 +1,7 @@
 /// Интеграционные тесты для GET /health.
 mod common;
 
-use bot_nexus::app::create_router;
+use rust_notest_api::app::create_router;
 use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
