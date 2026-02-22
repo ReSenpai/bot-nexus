@@ -1,6 +1,6 @@
 /// Общие утилиты для интеграционных тестов.
 
-use rust_notest_api::state::AppState;
+use todo_api::state::AppState;
 use sqlx::PgPool;
 
 /// Создаёт AppState с реальной БД для тестов.
