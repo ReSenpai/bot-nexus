@@ -38,7 +38,7 @@ async fn main() {
 };
 
     // Создаём роутер и передаём ему state.
-    let app = app::create_router().with_state(app_state);
+    let app = app::create_router(app_state);
 
     // Определяем адрес, на котором будет слушать сервер.
     let addr = "0.0.0.0:3000";

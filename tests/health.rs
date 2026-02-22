@@ -9,7 +9,7 @@ use tower::ServiceExt;
 #[tokio::test]
 async fn health_check_returns_200_ok() {
     let state = common::test_app_state().await;
-    let app = create_router().with_state(state);
+    let app = create_router(state);
 
     let request = Request::builder()
         .uri("/health")
