@@ -2,7 +2,7 @@ use argon2::{
     password_hash::{rand_core::OsRng, SaltString},
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
 };
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 
@@ -14,11 +14,11 @@ use crate::repo::user_repo;
 /// JWT состоит из трёх частей: header.payload.signature
 /// `Claims` — это payload.
 #[derive(Debug, Serialize, Deserialize)]
-struct Claims {
+pub struct Claims {
     /// Subject — идентификатор пользователя (UUID в виде строки).
-    sub: String,
+    pub sub: String,
     /// Expiration — время истечения токена (Unix timestamp).
-    exp: usize,
+    pub exp: usize,
 }
 
 /// Регистрация нового пользователя.
@@ -116,4 +116,16 @@ fn create_jwt(user_id: &str, secret: &str) -> Result<String, AppError> {
     .map_err(|_| AppError::Validation("Failed to create token".to_string()))?;
 
     Ok(token)
+}
+
+/// Валидирует JWT-токен и возвращает claims.
+pub fn validate_jwt(token: &str, secret: &str) -> Result<Claims, AppError> {
+    let token_data = decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(secret.as_bytes()),
+        &Validation::default(),
+    )
+    .map_err(|_| AppError::Unauthorized)?;
+
+    Ok(token_data.claims)
 }

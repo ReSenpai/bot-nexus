@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 argon2 = "0.4"
-axum = "0.7"
+axum = "0.8"
 dotenvy = "0.15"
 jsonwebtoken = "9"
 hyper = { version = "1", features = ["full"] }
