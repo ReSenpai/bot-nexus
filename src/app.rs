@@ -7,4 +7,5 @@ pub fn create_router() -> Router<AppState> {
     Router::new()
         .merge(routes::health::router())
         .merge(routes::auth::router())
+        .merge(routes::lists::router())
 }

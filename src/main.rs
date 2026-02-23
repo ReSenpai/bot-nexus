@@ -30,6 +30,16 @@ async fn main() {
 
     tracing::info!("Database connection established and healthy.");
 
+    // Автоматически применяем миграции при старте.
+    // В Docker-контейнере нет возможности запустить `sqlx migrate run` вручную,
+    // поэтому миграции встроены в бинарник через макрос `migrate!`.
+    sqlx::migrate!("./migrations")
+        .run(&pool)
+        .await
+        .expect("Failed to run database migrations");
+
+    tracing::info!("Database migrations applied successfully.");
+
     let jwt_secret = env::var("JWT_SECRET").unwrap_or_else(|_| "dev-secret-key".to_string());
 
     let app_state = AppState {

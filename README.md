@@ -23,7 +23,7 @@ Backend-сервис для управления TODO-списками и зад
 - [x] Docker Compose (PostgreSQL + Adminer)
 - [x] Миграция: таблица `users`
 - [x] Базовая структура проекта (слои)
-- [ ] Миграция: таблица `todo_lists`
+- [x] Миграция: таблица `todo_lists`
 - [ ] Миграция: таблица `tasks`
 
 ### Auth
@@ -39,12 +39,12 @@ Backend-сервис для управления TODO-списками и зад
 - [x] Интеграционный тест health
 
 ### TODO Lists
-- [ ] Модель `TodoList`
-- [ ] DTO для списков
-- [ ] `list_repo` — CRUD в БД
-- [ ] `list_service` — бизнес-логика
-- [ ] Маршруты: `POST / GET / PUT / DELETE /lists`
-- [ ] Интеграционные тесты lists
+- [x] Модель `TodoList`
+- [x] DTO для списков
+- [x] `list_repo` — CRUD в БД
+- [x] `list_service` — бизнес-логика
+- [x] Маршруты: `POST / GET / PUT / DELETE /lists`
+- [x] Интеграционные тесты lists (7 тестов)
 
 ### Tasks
 - [ ] Модель `Task` (статусы: `todo`, `in_progress`, `done`)
@@ -144,4 +144,8 @@ todo-api/
 cargo test           # запуск всех тестов
 cargo test auth      # только тесты auth
 cargo test health    # только тесты health
+```
+
+```
+docker-compose up --build    # Запуск всего стека из коробки
 ```

@@ -55,3 +55,77 @@ Content-Type: application/json
     "email": "nobody@example.com",
     "password": "whatever"
 }
+
+###
+
+# ==================== LISTS ====================
+# Вставьте токен из ответа login/register в переменную ниже.
+@token = eyJhbG...ваш_токен_здесь
+
+### Создать TODO-лист (201)
+POST http://localhost:3000/lists
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "title": "Покупки"
+}
+
+###
+
+### Создать ещё один список (201)
+POST http://localhost:3000/lists
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "title": "Работа"
+}
+
+###
+
+### Получить все списки (200)
+GET http://localhost:3000/lists
+Authorization: Bearer {{token}}
+
+###
+
+### Получить список по ID (200)
+# Подставьте реальный UUID из ответа POST /lists
+@list_id = вставьте-uuid-сюда
+
+GET http://localhost:3000/lists/{{list_id}}
+Authorization: Bearer {{token}}
+
+###
+
+### Обновить название списка (200)
+PUT http://localhost:3000/lists/{{list_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "title": "Покупки на неделю"
+}
+
+###
+
+### Удалить список (204)
+DELETE http://localhost:3000/lists/{{list_id}}
+Authorization: Bearer {{token}}
+
+###
+
+### Получить удалённый список (404)
+GET http://localhost:3000/lists/{{list_id}}
+Authorization: Bearer {{token}}
+
+###
+
+### Запрос без токена (401)
+POST http://localhost:3000/lists
+Content-Type: application/json
+
+{
+    "title": "Без авторизации"
+}
