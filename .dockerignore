@@ -1,0 +1,7 @@
+target/
+.git/
+.env
+*.md
+requests.http
+tests/
+.gitignore

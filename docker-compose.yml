@@ -1,4 +1,5 @@
 services:
+  # ===== PostgreSQL =====
   postgres:
     image: postgres:15
     container_name: todos-postgres
@@ -11,13 +12,36 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # healthcheck — docker-compose будет считать postgres "healthy"
+    # только когда pg_isready вернёт успех. Наш API подождёт этого.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U todo_user -d todo_db"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
 
+  # ===== Adminer (веб-интерфейс к БД) =====
   adminer:
     image: adminer
     container_name: todos-adminer
     restart: always
     ports:
       - "8080:8080"
+
+  # ===== TODO API (наш Rust-сервер) =====
+  api:
+    build: .
+    container_name: todos-api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://todo_user:todo_pass@postgres:5432/todo_db
+      JWT_SECRET: change-me-in-production
+    depends_on:
+      postgres:
+        # Запускаем API только после того, как Postgres прошёл healthcheck.
+        condition: service_healthy
 
 volumes:
   pgdata:
