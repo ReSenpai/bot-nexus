@@ -25,8 +25,9 @@ pub async fn test_app_state() -> AppState {
     }
 }
 
+#[allow(dead_code)]
 /// Регистрирует пользователя и возвращает JWT-токен.
- pub async fn get_auth_token(state: &todo_api::state::AppState, email: &str) -> String {
+pub async fn get_auth_token(state: &todo_api::state::AppState, email: &str) -> String {
     let app = create_router().with_state(state.clone());
 
     let req = Request::builder()
@@ -48,6 +49,7 @@ pub async fn test_app_state() -> AppState {
     body["token"].as_str().unwrap().to_string()
 }
 
+#[allow(dead_code)]
 /// Удаляет тестового пользователя по email.
 pub async fn cleanup_user(pool: &PgPool, email: &str) {
     sqlx::query("DELETE FROM users WHERE email = $1")
