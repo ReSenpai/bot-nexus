@@ -31,8 +31,6 @@ async fn main() {
     tracing::info!("Database connection established and healthy.");
 
     // Автоматически применяем миграции при старте.
-    // В Docker-контейнере нет возможности запустить `sqlx migrate run` вручную,
-    // поэтому миграции встроены в бинарник через макрос `migrate!`.
     sqlx::migrate!("./migrations")
         .run(&pool)
         .await

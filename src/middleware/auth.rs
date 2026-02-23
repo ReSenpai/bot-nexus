@@ -14,7 +14,7 @@ pub struct AuthUser {
     pub user_id: String,
 }
 
-/// Ошибка авторизации — возвращается, если токен отсутствует или невалиден.
+/// Ошибка авторизации
 pub struct AuthError(String);
 
 impl IntoResponse for AuthError {
