@@ -1,7 +1,4 @@
 /// Интеграционные тесты для CRUD TODO-листов.
-///
-/// Все эндпоинты требуют авторизации (AuthUser).
-/// Формат: POST/GET/PUT/DELETE /lists
 mod common;
 
 use axum::http::{Request, StatusCode};
@@ -10,28 +7,6 @@ use tower::ServiceExt;
 
 use todo_api::app::create_router;
 
-/// Регистрирует пользователя и возвращает JWT-токен.
-async fn get_auth_token(state: &todo_api::state::AppState, email: &str) -> String {
-    let app = create_router().with_state(state.clone());
-
-    let req = Request::builder()
-        .method("POST")
-        .uri("/auth/register")
-        .header("Content-Type", "application/json")
-        .body(axum::body::Body::from(
-            serde_json::json!({
-                "email": email,
-                "password": "password123"
-            })
-            .to_string(),
-        ))
-        .unwrap();
-
-    let resp = app.oneshot(req).await.unwrap();
-    let bytes = resp.into_body().collect().await.unwrap().to_bytes();
-    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-    body["token"].as_str().unwrap().to_string()
-}
 
 // ==================== POST /lists ====================
 
@@ -40,7 +15,7 @@ async fn create_list_returns_201() {
     let state = common::test_app_state().await;
     let email = "lists_create@example.com";
     common::cleanup_user(&state.db, email).await;
-    let token = get_auth_token(&state, email).await;
+    let token = common::get_auth_token(&state, email).await;
 
     let app = create_router().with_state(state.clone());
 
@@ -93,7 +68,7 @@ async fn get_lists_returns_200_with_array() {
     let state = common::test_app_state().await;
     let email = "lists_getall@example.com";
     common::cleanup_user(&state.db, email).await;
-    let token = get_auth_token(&state, email).await;
+    let token = common::get_auth_token(&state, email).await;
 
     // Сначала создаём два списка.
     for title in &["Work", "Personal"] {
@@ -140,7 +115,7 @@ async fn get_list_by_id_returns_200() {
     let state = common::test_app_state().await;
     let email = "lists_getone@example.com";
     common::cleanup_user(&state.db, email).await;
-    let token = get_auth_token(&state, email).await;
+    let token = common::get_auth_token(&state, email).await;
 
     // Создаём список.
     let app = create_router().with_state(state.clone());
@@ -183,7 +158,7 @@ async fn get_nonexistent_list_returns_404() {
     let state = common::test_app_state().await;
     let email = "lists_404@example.com";
     common::cleanup_user(&state.db, email).await;
-    let token = get_auth_token(&state, email).await;
+    let token = common::get_auth_token(&state, email).await;
 
     let app = create_router().with_state(state.clone());
 
@@ -209,7 +184,7 @@ async fn update_list_returns_200() {
     let state = common::test_app_state().await;
     let email = "lists_update@example.com";
     common::cleanup_user(&state.db, email).await;
-    let token = get_auth_token(&state, email).await;
+    let token = common::get_auth_token(&state, email).await;
 
     // Создаём список.
     let app = create_router().with_state(state.clone());
@@ -256,7 +231,7 @@ async fn delete_list_returns_204() {
     let state = common::test_app_state().await;
     let email = "lists_delete@example.com";
     common::cleanup_user(&state.db, email).await;
-    let token = get_auth_token(&state, email).await;
+    let token = common::get_auth_token(&state, email).await;
 
     // Создаём список.
     let app = create_router().with_state(state.clone());

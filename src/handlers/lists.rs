@@ -36,9 +36,7 @@ pub async fn get_all(
     Ok(Json(lists))
 }
 
-/// GET /lists/:id — получить один список по ID.
-///
-/// `Path(list_id)` — axum extractor, который парсит параметр из URL.
+/// GET /lists/:id — получить один список по ID
 pub async fn get_one(
     State(state): State<AppState>,
     user: AuthUser,
@@ -68,8 +66,6 @@ pub async fn update(
 }
 
 /// DELETE /lists/:id — удалить список.
-///
-/// Возвращает 204 No Content — тело ответа пустое.
 pub async fn delete(
     State(state): State<AppState>,
     user: AuthUser,

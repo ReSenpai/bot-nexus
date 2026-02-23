@@ -27,13 +27,6 @@ pub enum AppError {
     Internal(#[from] sqlx::Error),
 }
 
-/// Реализация `IntoResponse` — это то, что позволяет возвращать
-/// `AppError` из handler'ов axum.
-///
-/// axum вызовет этот метод автоматически, когда handler вернёт `Err(AppError)`.
-/// Мы конвертируем каждый вариант ошибки в HTTP-ответ с:
-/// - правильным статус-кодом
-/// - JSON-телом вида `{ "error": "сообщение" }`
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let status = match &self {

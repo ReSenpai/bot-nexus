@@ -6,9 +6,6 @@ use crate::errors::AppError;
 use crate::repo::list_repo;
 
 /// Создаёт новый TODO-лист.
-///
-/// Service layer принимает примитивные типы — UUID пользователя и title.
-/// Repo возвращает полную модель, service конвертирует в DTO для ответа.
 pub async fn create_list(
     pool: &PgPool,
     user_id: Uuid,
@@ -29,7 +26,6 @@ pub async fn get_all_lists(pool: &PgPool, user_id: Uuid) -> Result<Vec<ListRespo
     let lists = list_repo::find_all_by_user(pool, user_id).await?;
 
     // Конвертируем Vec<TodoList> → Vec<ListResponse>.
-    // `.into_iter().map().collect()` — идиоматичный Rust для трансформации коллекций.
     let response = lists
         .into_iter()
         .map(|list| ListResponse {
@@ -44,7 +40,6 @@ pub async fn get_all_lists(pool: &PgPool, user_id: Uuid) -> Result<Vec<ListRespo
 }
 
 /// Возвращает один список по ID.
-///
 /// Если список не найден или принадлежит другому пользователю → 404.
 pub async fn get_list(
     pool: &PgPool,
@@ -64,8 +59,6 @@ pub async fn get_list(
 }
 
 /// Обновляет название списка.
-///
-/// Если список не найден → 404.
 pub async fn update_list(
     pool: &PgPool,
     list_id: Uuid,
@@ -85,8 +78,6 @@ pub async fn update_list(
 }
 
 /// Удаляет список.
-///
-/// Если список не найден → 404.
 pub async fn delete_list(
     pool: &PgPool,
     list_id: Uuid,

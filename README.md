@@ -104,7 +104,7 @@ todo-api/
 │   ├── health.rs              # 1 тест
 │   ├── auth.rs                # 5 тестов
 │   ├── middleware_auth.rs     # 3 теста
-│   └── lists.rs              # 7 тестов
+│   └── lists.rs               # 7 тестов
 └── README.md
 ```
 
