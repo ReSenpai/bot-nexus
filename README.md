@@ -20,9 +20,10 @@ Backend-сервис для управления TODO-списками и зад
 ## ✅ Прогресс
 
 ### Инфраструктура
-- [x] Docker Compose (PostgreSQL + Adminer)
+- [x] Docker Compose (PostgreSQL + Adminer + API)
+- [x] Dockerfile (multi-stage build)
+- [x] Автоматические миграции при старте (`sqlx::migrate!`)
 - [x] Миграция: таблица `users`
-- [x] Базовая структура проекта (слои)
 - [x] Миграция: таблица `todo_lists`
 - [ ] Миграция: таблица `tasks`
 
@@ -60,41 +61,50 @@ Backend-сервис для управления TODO-списками и зад
 
 ```
 todo-api/
-├── Cargo.toml
-├── docker-compose.yml
-├── .env
+├── Cargo.toml                 # зависимости проекта (Rust 2024 edition)
+├── Cargo.lock                 # зафиксированные версии зависимостей
+├── Dockerfile                 # multi-stage сборка (builder + runtime)
+├── docker-compose.yml         # PostgreSQL + Adminer + API
+├── .dockerignore              # исключения для Docker-контекста
+├── .env                       # переменные окружения (DATABASE_URL, JWT_SECRET)
+├── requests.http              # готовые HTTP-запросы для тестирования
 ├── migrations/
-│   └── *_create_users_table.sql
+│   ├── *_create_users_table.sql
+│   └── *_create_todo_lists_table.up.sql
 ├── src/
-│   ├── main.rs            # точка входа, PgPool, запуск сервера
-│   ├── app.rs             # create_router() — сборка маршрутов
-│   ├── lib.rs             # re-export модулей
-│   ├── state.rs           # AppState { db, jwt_secret }
-│   ├── errors.rs          # AppError — единая обработка ошибок
+│   ├── main.rs                # точка входа: PgPool, миграции, запуск сервера
+│   ├── app.rs                 # create_router() — сборка всех маршрутов
+│   ├── lib.rs                 # re-export модулей (pub mod ...)
+│   ├── state.rs               # AppState { db, jwt_secret }
+│   ├── errors.rs              # AppError — единая обработка ошибок (401/404/409/422/500)
+│   ├── middleware/
+│   │   └── auth.rs            # AuthUser extractor — проверка JWT из заголовка
 │   ├── routes/
-│   │   ├── mod.rs
-│   │   ├── auth.rs        # POST /auth/register, /auth/login
-│   │   └── health.rs      # GET /health
+│   │   ├── auth.rs            # POST /auth/register, /auth/login
+│   │   ├── health.rs          # GET /health
+│   │   └── lists.rs           # POST/GET/PUT/DELETE /lists
 │   ├── handlers/
-│   │   ├── mod.rs
-│   │   ├── auth.rs        # обработка HTTP-запросов auth
-│   │   └── health.rs      # обработка health check
+│   │   ├── auth.rs            # обработка HTTP-запросов auth
+│   │   ├── health.rs          # обработка health check
+│   │   └── lists.rs           # обработка CRUD списков (с AuthUser)
 │   ├── services/
-│   │   ├── mod.rs
-│   │   └── auth.rs        # хеширование, JWT, бизнес-логика
+│   │   ├── auth.rs            # Argon2, JWT create/validate
+│   │   └── lists.rs           # бизнес-логика списков
 │   ├── repo/
-│   │   ├── mod.rs
-│   │   └── user_repo.rs   # SQL-запросы к таблице users
+│   │   ├── user_repo.rs       # SQL: create_user, find_by_email
+│   │   └── list_repo.rs       # SQL: CRUD todo_lists
 │   ├── models/
-│   │   ├── mod.rs
-│   │   └── user.rs        # User { id, email, password_hash, created_at }
+│   │   ├── user.rs            # User { id, email, password_hash, created_at }
+│   │   └── todo_list.rs       # TodoList { id, user_id, title, timestamps }
 │   └── dto/
-│       ├── mod.rs
-│       └── auth.rs        # RegisterRequest, LoginRequest, AuthResponse
+│       ├── auth.rs            # RegisterRequest, LoginRequest, AuthResponse
+│       └── lists.rs           # CreateListRequest, UpdateListRequest, ListResponse
 ├── tests/
-│   ├── common/mod.rs      # test_app_state(), cleanup helpers
-│   ├── auth.rs            # 5 интеграционных тестов
-│   └── health.rs          # 1 интеграционный тест
+│   ├── common/mod.rs          # test_app_state(), cleanup_user()
+│   ├── health.rs              # 1 тест
+│   ├── auth.rs                # 5 тестов
+│   ├── middleware_auth.rs     # 3 теста
+│   └── lists.rs              # 7 тестов
 └── README.md
 ```
 
@@ -102,16 +112,17 @@ todo-api/
 
 ## 🧠 Разделение ответственности
 
-| Слой       | Отвечает за                  |
-|------------|------------------------------|
-| `routes`   | URL + HTTP метод             |
-| `handlers` | HTTP → вызов сервиса         |
-| `services` | Бизнес-логика                |
-| `repo`     | SQL-запросы (PostgreSQL)     |
-| `models`   | Доменная модель              |
-| `dto`      | JSON вход/выход              |
-| `state`    | Shared-зависимости (DB, JWT) |
-| `errors`   | Единый error flow            |
+| Слой         | Отвечает за                              |
+|--------------|------------------------------------------|
+| `routes`     | URL + HTTP метод                         |
+| `handlers`   | HTTP → вызов сервиса                     |
+| `middleware`  | JWT-авторизация (AuthUser extractor)    |
+| `services`   | Бизнес-логика                            |
+| `repo`       | SQL-запросы (PostgreSQL)                 |
+| `models`     | Доменная модель (ORM-маппинг)            |
+| `dto`        | JSON вход/выход (request/response)       |
+| `state`      | Shared-зависимости (DB, JWT)             |
+| `errors`     | Единый error flow (AppError → HTTP)      |
 
 ---
 
@@ -127,8 +138,8 @@ todo-api/
 | Конфигурация    | .env (dotenvy)                            |
 | Логирование     | tracing + tracing-subscriber              |
 | Ошибки          | AppError (thiserror)                      |
-| Тестирование    | Integration tests (TDD)                   |
-| Инфраструктура  | Docker, docker-compose, sqlx migrate      |
+| Тестирование    | Integration tests (TDD), 16 тестов        |
+| Инфраструктура  | Docker (multi-stage), docker-compose      |
 
 ---
 
@@ -140,12 +151,34 @@ todo-api/
 2. **Green** — пишем минимальный код, чтобы тест прошёл
 3. **Refactor** — улучшаем код, тесты остаются зелёными
 
-```
-cargo test           # запуск всех тестов
-cargo test auth      # только тесты auth
-cargo test health    # только тесты health
+```bash
+cargo test                       # все 16 тестов
+cargo test --test auth           # 5 тестов auth
+cargo test --test health         # 1 тест health
+cargo test --test middleware_auth # 3 теста middleware
+cargo test --test lists          # 7 тестов lists
 ```
 
+---
+
+## 🚀 Запуск
+
+### Всё в Docker (production-ready)
+
+```bash
+docker-compose up --build    # PostgreSQL + Adminer + API — всё из коробки
 ```
-docker-compose up --build    # Запуск всего стека из коробки
+
+| Сервис   | URL                    |
+|----------|------------------------|
+| API      | http://localhost:3000   |
+| Adminer  | http://localhost:8080   |
+| Postgres | localhost:5432          |
+
+### Локальная разработка
+
+```bash
+docker-compose up postgres adminer -d   # только БД + Adminer
+sqlx migrate run                        # применить миграции
+cargo run                               # запустить API
 ```
