@@ -112,6 +112,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            set -e  # Останавливаем выполнение при любой ошибке
+
             # --- Заходим в директорию проекта ---
             cd ~/todo-api
 
@@ -133,8 +135,8 @@ jobs:
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # --- Скачиваем новый образ и перезапускаем ---
-            docker compose pull
-            docker compose up -d --remove-orphans
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
             # --- Чистим старые образы (не удаляем используемые) ---
             docker image prune -f
