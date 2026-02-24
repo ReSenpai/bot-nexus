@@ -1,0 +1,142 @@
+name: CD — Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: todo_user
+          POSTGRES_PASSWORD: todo_pass
+          POSTGRES_DB: todo_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U todo_user -d todo_db"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features postgres
+
+      - name: Run migrations
+        run: sqlx migrate run
+        env:
+          DATABASE_URL: postgres://todo_user:todo_pass@localhost:5432/todo_db
+
+      - name: Run tests
+        run: cargo test --verbose
+        env:
+          DATABASE_URL: postgres://todo_user:todo_pass@localhost:5432/todo_db
+          JWT_SECRET: test-secret-key-for-ci
+
+  build-and-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    needs: test
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Подготавливаем метаданные: теги и лейблы для Docker-образа.
+      # Генерирует два тега:
+      #   - ghcr.io/username/repo:latest  (всегда последняя версия)
+      #   - ghcr.io/username/repo:sha-abc1234  (привязка к конкретному коммиту)
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-
+
+      # Собираем и пушим образ.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: build-and-push  # ← запускается ТОЛЬКО после успешной сборки
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            # --- Заходим в директорию проекта ---
+            cd ~/todo-api
+
+            # --- Записываем актуальные переменные окружения ---
+            # Каждый деплой перезаписывает .env, чтобы секреты всегда были актуальны.
+            cat > .env << 'EOF'
+            POSTGRES_USER=todo_user
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            POSTGRES_DB=todo_db
+            DATABASE_URL=postgres://todo_user:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/todo_db
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            IMAGE_NAME=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            EOF
+
+            # --- Логинимся в GHCR ---
+            # GHCR_PAT — Personal Access Token, который ты создаёшь в:
+            # GitHub → Settings → Developer settings → Personal access tokens
+            # Нужен scope: read:packages
+            echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # --- Скачиваем новый образ и перезапускаем ---
+            docker compose pull
+            docker compose up -d --remove-orphans
+
+            # --- Чистим старые образы (не удаляем используемые) ---
+            docker image prune -f
+
+            echo "✅ Deploy complete!"
