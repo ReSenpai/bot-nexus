@@ -1,0 +1,87 @@
+# =============================================================================
+# CI Pipeline — запуск тестов
+# =============================================================================
+#
+# Срабатывает на:
+#   - push в ветку dev     → только тесты (быстрая обратная связь)
+#   - push в ветку main    → тесты (перед деплоем, деплой в отдельном workflow)
+#   - pull request в main  → тесты (проверка перед мержем)
+#
+# Для тестов поднимается PostgreSQL через services (встроено в GitHub Actions).
+# =============================================================================
+
+name: CI — Tests
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  DATABASE_URL: postgres://todo_user:todo_pass@localhost:5432/todo_db
+  JWT_SECRET: test-secret-key-for-ci
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    # ===== PostgreSQL как сервис =====
+    # GitHub Actions поднимает контейнер PostgreSQL рядом с нашим CI.
+    # Он доступен по localhost:5432 (как если бы БД была установлена локально).
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: todo_user
+          POSTGRES_PASSWORD: todo_pass
+          POSTGRES_DB: todo_db
+        ports:
+          - 5432:5432
+        # Без healthcheck GitHub Actions не дождётся готовности PostgreSQL.
+        options: >-
+          --health-cmd "pg_isready -U todo_user -d todo_db"
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      # 1. Клонируем репозиторий.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Устанавливаем Rust toolchain.
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # 3. Кэшируем cargo registry + target — ускоряет CI в 3-5 раз.
+      #    Ключ кэша зависит от Cargo.lock — при обновлении зависимостей кэш пересоздаётся.
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # 4. Устанавливаем sqlx-cli для применения миграций.
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features postgres
+
+      # 5. Применяем миграции к тестовой БД.
+      - name: Run migrations
+        run: sqlx migrate run
+
+      # 6. Запускаем все тесты.
+      - name: Run tests
+        run: cargo test --verbose
+
+      # 7. Проверяем, что код компилируется без warnings (опционально).
+      - name: Check clippy (lints)
+        run: cargo clippy -- -D warnings
+        continue-on-error: true  # пока не блокируем CI из-за линтов

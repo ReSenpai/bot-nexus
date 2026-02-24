@@ -27,6 +27,11 @@ Backend-сервис для управления TODO-списками и зад
 - [x] Миграция: таблица `todo_lists`
 - [ ] Миграция: таблица `tasks`
 
+### CI/CD
+- [x] GitHub Actions: CI — тесты на push в `dev` и `main`
+- [x] GitHub Actions: CD — сборка, GHCR, деплой на сервер (push в `main`)
+- [x] `docker-compose.prod.yml` — продакшн конфиг (образ из GHCR)
+
 ### Auth
 - [x] `POST /auth/register` — регистрация
 - [x] `POST /auth/login` — вход (JWT-токен)
@@ -64,10 +69,15 @@ todo-api/
 ├── Cargo.toml                 # зависимости проекта (Rust 2024 edition)
 ├── Cargo.lock                 # зафиксированные версии зависимостей
 ├── Dockerfile                 # multi-stage сборка (builder + runtime)
-├── docker-compose.yml         # PostgreSQL + Adminer + API
+├── docker-compose.yml         # PostgreSQL + Adminer + API (dev)
+├── docker-compose.prod.yml    # PostgreSQL + API из GHCR (production)
 ├── .dockerignore              # исключения для Docker-контекста
 ├── .env                       # переменные окружения (DATABASE_URL, JWT_SECRET)
 ├── requests.http              # готовые HTTP-запросы для тестирования
+├── .github/
+│   └── workflows/
+│       ├── ci.yml             # CI: тесты на push в dev/main
+│       └── deploy.yml         # CD: сборка → GHCR → SSH deploy
 ├── migrations/
 │   ├── *_create_users_table.sql
 │   └── *_create_todo_lists_table.up.sql
@@ -140,6 +150,7 @@ todo-api/
 | Ошибки          | AppError (thiserror)                      |
 | Тестирование    | Integration tests (TDD), 16 тестов        |
 | Инфраструктура  | Docker (multi-stage), docker-compose      |
+| CI/CD           | GitHub Actions, GHCR, SSH deploy          |
 
 ---
 
@@ -181,4 +192,55 @@ docker-compose up --build    # PostgreSQL + Adminer + API — всё из кор
 docker-compose up postgres adminer -d   # только БД + Adminer
 sqlx migrate run                        # применить миграции
 cargo run                               # запустить API
+```
+
+---
+
+## 🔄 CI/CD
+
+### Пайплайн
+
+```
+push в dev  ─────────────────────►  CI: тесты
+push в main ──► CI: тесты ──► Build & Push (GHCR) ──► Deploy (SSH)
+```
+
+### CI (`.github/workflows/ci.yml`)
+
+- Запускается на push в `dev`, `main` и на PR в `main`
+- Поднимает PostgreSQL service container
+- Устанавливает Rust, кэширует cargo, прогоняет миграции
+- Запускает `cargo test`
+
+### CD (`.github/workflows/deploy.yml`)
+
+- Запускается только на push в `main`
+- **Job 1** — тесты (обязательно перед деплоем)
+- **Job 2** — сборка Docker-образа → push в `ghcr.io`
+- **Job 3** — SSH на сервер → `docker compose pull` → `docker compose up -d`
+
+### GitHub Secrets
+
+Настрой в: **Settings → Secrets and variables → Actions**
+
+| Secret              | Описание                                                   |
+|---------------------|------------------------------------------------------------|
+| `SERVER_HOST`       | IP-адрес Ubuntu-сервера                                    |
+| `SERVER_USER`       | SSH-пользователь (например `deploy`)                        |
+| `SERVER_SSH_KEY`    | Приватный SSH-ключ (весь файл `id_ed25519`)                |
+| `POSTGRES_PASSWORD` | Пароль PostgreSQL на продакшне                              |
+| `JWT_SECRET`        | Секрет для подписи JWT на продакшне                         |
+| `GHCR_PAT`         | Personal Access Token с `read:packages` (для docker login) |
+
+### Подготовка сервера
+
+```bash
+# 1. Установи Docker + Docker Compose v2
+# 2. Создай директорию проекта
+mkdir -p ~/todo-api
+
+# 3. Скопируй docker-compose.prod.yml на сервер
+scp docker-compose.prod.yml user@server:~/todo-api/docker-compose.yml
+
+# Всё остальное (pull, .env, запуск) делает CD-пайплайн автоматически.
 ```
