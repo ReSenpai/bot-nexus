@@ -25,7 +25,7 @@ Backend-сервис для управления TODO-списками и зад
 - [x] Автоматические миграции при старте (`sqlx::migrate!`)
 - [x] Миграция: таблица `users`
 - [x] Миграция: таблица `todo_lists`
-- [ ] Миграция: таблица `tasks`
+- [x] Миграция: таблица `tasks`
 
 ### CI/CD
 - [x] GitHub Actions: CI — тесты на push в `dev` и `main`
@@ -53,12 +53,12 @@ Backend-сервис для управления TODO-списками и зад
 - [x] Интеграционные тесты lists (7 тестов)
 
 ### Tasks
-- [ ] Модель `Task` (статусы: `todo`, `in_progress`, `done`)
-- [ ] DTO для задач
-- [ ] `task_repo` — CRUD в БД
-- [ ] `task_service` — бизнес-логика
-- [ ] Маршруты: `POST / GET / PUT / DELETE /lists/:id/tasks`
-- [ ] Интеграционные тесты tasks
+- [x] Модель `Task` (статусы: `todo`, `in_progress`, `done`)
+- [x] DTO для задач
+- [x] `task_repo` — CRUD в БД
+- [x] `task_service` — бизнес-логика (с проверкой владения списком)
+- [x] Маршруты: `POST / GET / PUT / DELETE /lists/:id/tasks`
+- [x] Интеграционные тесты tasks (7 тестов)
 
 ---
 
@@ -80,7 +80,8 @@ todo-api/
 │       └── deploy.yml         # CD: сборка → GHCR → SSH deploy
 ├── migrations/
 │   ├── *_create_users_table.sql
-│   └── *_create_todo_lists_table.up.sql
+│   ├── *_create_todo_lists_table.up.sql
+│   └── *_create_tasks_table.up.sql
 ├── src/
 │   ├── main.rs                # точка входа: PgPool, миграции, запуск сервера
 │   ├── app.rs                 # create_router() — сборка всех маршрутов
@@ -92,29 +93,36 @@ todo-api/
 │   ├── routes/
 │   │   ├── auth.rs            # POST /auth/register, /auth/login
 │   │   ├── health.rs          # GET /health
-│   │   └── lists.rs           # POST/GET/PUT/DELETE /lists
+│   │   ├── lists.rs           # POST/GET/PUT/DELETE /lists
+│   │   └── tasks.rs           # POST/GET/PUT/DELETE /lists/:id/tasks
 │   ├── handlers/
 │   │   ├── auth.rs            # обработка HTTP-запросов auth
 │   │   ├── health.rs          # обработка health check
-│   │   └── lists.rs           # обработка CRUD списков (с AuthUser)
+│   │   ├── lists.rs           # обработка CRUD списков (с AuthUser)
+│   │   └── tasks.rs           # обработка CRUD задач (с AuthUser)
 │   ├── services/
 │   │   ├── auth.rs            # Argon2, JWT create/validate
-│   │   └── lists.rs           # бизнес-логика списков
+│   │   ├── lists.rs           # бизнес-логика списков
+│   │   └── tasks.rs           # бизнес-логика задач + verify_list_ownership
 │   ├── repo/
 │   │   ├── user_repo.rs       # SQL: create_user, find_by_email
-│   │   └── list_repo.rs       # SQL: CRUD todo_lists
+│   │   ├── list_repo.rs       # SQL: CRUD todo_lists
+│   │   └── task_repo.rs       # SQL: CRUD tasks
 │   ├── models/
 │   │   ├── user.rs            # User { id, email, password_hash, created_at }
-│   │   └── todo_list.rs       # TodoList { id, user_id, title, timestamps }
+│   │   ├── todo_list.rs       # TodoList { id, user_id, title, timestamps }
+│   │   └── task.rs            # Task { id, list_id, title, status, timestamps }
 │   └── dto/
 │       ├── auth.rs            # RegisterRequest, LoginRequest, AuthResponse
-│       └── lists.rs           # CreateListRequest, UpdateListRequest, ListResponse
+│       ├── lists.rs           # CreateListRequest, UpdateListRequest, ListResponse
+│       └── tasks.rs           # CreateTaskRequest, UpdateTaskRequest, TaskResponse
 ├── tests/
 │   ├── common/mod.rs          # test_app_state(), cleanup_user()
 │   ├── health.rs              # 1 тест
 │   ├── auth.rs                # 5 тестов
 │   ├── middleware_auth.rs     # 3 теста
-│   └── lists.rs               # 7 тестов
+│   ├── lists.rs               # 7 тестов
+│   └── tasks.rs               # 7 тестов
 └── README.md
 ```
 
@@ -148,7 +156,7 @@ todo-api/
 | Конфигурация    | .env (dotenvy)                            |
 | Логирование     | tracing + tracing-subscriber              |
 | Ошибки          | AppError (thiserror)                      |
-| Тестирование    | Integration tests (TDD), 16 тестов        |
+| Тестирование    | Integration tests (TDD), 23 теста         |
 | Инфраструктура  | Docker (multi-stage), docker-compose      |
 | CI/CD           | GitHub Actions, GHCR, SSH deploy          |
 
@@ -163,11 +171,12 @@ todo-api/
 3. **Refactor** — улучшаем код, тесты остаются зелёными
 
 ```bash
-cargo test                       # все 16 тестов
+cargo test                       # все 23 теста
 cargo test --test auth           # 5 тестов auth
 cargo test --test health         # 1 тест health
 cargo test --test middleware_auth # 3 теста middleware
 cargo test --test lists          # 7 тестов lists
+cargo test --test tasks          # 7 тестов tasks
 ```
 
 ---
