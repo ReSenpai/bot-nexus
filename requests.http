@@ -129,3 +129,80 @@ Content-Type: application/json
 {
     "title": "Без авторизации"
 }
+
+###
+
+# ==================== TASKS ====================
+# Задачи вложены в списки: /lists/:list_id/tasks
+# Подставьте list_id из ответа POST /lists выше.
+
+### Создать задачу в списке (201)
+POST http://localhost:3000/lists/{{list_id}}/tasks
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "title": "Купить молоко"
+}
+
+###
+
+### Создать ещё одну задачу (201)
+POST http://localhost:3000/lists/{{list_id}}/tasks
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "title": "Написать тесты"
+}
+
+###
+
+### Получить все задачи списка (200)
+GET http://localhost:3000/lists/{{list_id}}/tasks
+Authorization: Bearer {{token}}
+
+###
+
+### Получить задачу по ID (200)
+# Подставьте реальный UUID задачи из ответа POST
+@task_id = вставьте-task-uuid-сюда
+
+GET http://localhost:3000/lists/{{list_id}}/tasks/{{task_id}}
+Authorization: Bearer {{token}}
+
+###
+
+### Обновить задачу — сменить title и status (200)
+PUT http://localhost:3000/lists/{{list_id}}/tasks/{{task_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "title": "Купить молоко и хлеб",
+    "status": "in_progress"
+}
+
+###
+
+### Завершить задачу — status done (200)
+PUT http://localhost:3000/lists/{{list_id}}/tasks/{{task_id}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+    "title": "Купить молоко и хлеб",
+    "status": "done"
+}
+
+###
+
+### Удалить задачу (204)
+DELETE http://localhost:3000/lists/{{list_id}}/tasks/{{task_id}}
+Authorization: Bearer {{token}}
+
+###
+
+### Получить удалённую задачу (404)
+GET http://localhost:3000/lists/{{list_id}}/tasks/{{task_id}}
+Authorization: Bearer {{token}}

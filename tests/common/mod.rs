@@ -58,3 +58,22 @@ pub async fn cleanup_user(pool: &PgPool, email: &str) {
         .await
         .ok();
 }
+
+#[allow(dead_code)]
+/// создаёт TODO-лист и возвращает его UUID.
+pub async fn create_list(state: &todo_api::state::AppState, token: &str) -> String {
+    let app = create_router().with_state(state.clone());
+    let req = Request::builder()
+        .method("POST")
+        .uri("/lists")
+        .header("Content-Type", "application/json")
+        .header("Authorization", format!("Bearer {}", token))
+        .body(axum::body::Body::from(
+            serde_json::json!({ "title": "Test List for Tasks" }).to_string(),
+        ))
+        .unwrap();
+    let resp = app.oneshot(req).await.unwrap();
+    let bytes = resp.into_body().collect().await.unwrap().to_bytes();
+    let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    body["id"].as_str().unwrap().to_string()
+}

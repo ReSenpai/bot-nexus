@@ -8,4 +8,5 @@ pub fn create_router() -> Router<AppState> {
         .merge(routes::health::router())
         .merge(routes::auth::router())
         .merge(routes::lists::router())
+        .merge(routes::tasks::router())
 }
