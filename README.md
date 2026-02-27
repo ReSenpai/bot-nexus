@@ -60,6 +60,11 @@ Backend-сервис для управления TODO-списками и зад
 - [x] Маршруты: `POST / GET / PUT / DELETE /lists/:id/tasks`
 - [x] Интеграционные тесты tasks (7 тестов)
 
+### Документация
+- [x] Swagger UI (utoipa) — интерактивная документация API
+- [x] OpenAPI 3.1 спецификация (`/api-docs/openapi.json`)
+- [x] Bearer-токен авторизация в Swagger UI
+
 ---
 
 ## 🧱 Архитектура проекта
@@ -159,6 +164,7 @@ todo-api/
 | Тестирование    | Integration tests (TDD), 23 теста         |
 | Инфраструктура  | Docker (multi-stage), docker-compose      |
 | CI/CD           | GitHub Actions, GHCR, SSH deploy          |
+| Документация     | utoipa + Swagger UI (OpenAPI 3.1)         |
 
 ---
 
@@ -189,11 +195,13 @@ cargo test --test tasks          # 7 тестов tasks
 docker-compose up --build    # PostgreSQL + Adminer + API — всё из коробки
 ```
 
-| Сервис   | URL                    |
-|----------|------------------------|
-| API      | http://localhost:3000   |
-| Adminer  | http://localhost:8080   |
-| Postgres | localhost:5432          |
+| Сервис     | URL                           |
+|----------|-------------------------------|
+| API      | http://localhost:3000          |
+| Swagger  | http://localhost:3000/swagger-ui/ |
+| OpenAPI  | http://localhost:3000/api-docs/openapi.json |
+| Adminer  | http://localhost:8080          |
+| Postgres | localhost:5432                 |
 
 ### Локальная разработка
 

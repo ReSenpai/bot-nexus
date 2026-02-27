@@ -10,6 +10,17 @@ use crate::services;
 use crate::state::AppState;
 
 /// POST /lists — создать новый TODO-лист.
+#[utoipa::path(
+    post,
+    path = "/lists",
+    tag = "Lists",
+    request_body = CreateListRequest,
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 201, description = "Список создан", body = ListResponse),
+        (status = 401, description = "Не авторизован", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn create(
     State(state): State<AppState>,
     user: AuthUser,
@@ -24,6 +35,16 @@ pub async fn create(
 }
 
 /// GET /lists — получить все списки текущего пользователя.
+#[utoipa::path(
+    get,
+    path = "/lists",
+    tag = "Lists",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Массив списков", body = Vec<ListResponse>),
+        (status = 401, description = "Не авторизован", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn get_all(
     State(state): State<AppState>,
     user: AuthUser,
@@ -36,7 +57,21 @@ pub async fn get_all(
     Ok(Json(lists))
 }
 
-/// GET /lists/:id — получить один список по ID
+/// GET /lists/{id} — получить один список по ID.
+#[utoipa::path(
+    get,
+    path = "/lists/{id}",
+    tag = "Lists",
+    security(("bearer_auth" = [])),
+    params(
+        ("id" = Uuid, Path, description = "UUID списка")
+    ),
+    responses(
+        (status = 200, description = "Найденный список", body = ListResponse),
+        (status = 401, description = "Не авторизован", body = crate::dto::ErrorResponse),
+        (status = 404, description = "Список не найден", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn get_one(
     State(state): State<AppState>,
     user: AuthUser,
@@ -50,7 +85,22 @@ pub async fn get_one(
     Ok(Json(list))
 }
 
-/// PUT /lists/:id — обновить название списка.
+/// PUT /lists/{id} — обновить название списка.
+#[utoipa::path(
+    put,
+    path = "/lists/{id}",
+    tag = "Lists",
+    security(("bearer_auth" = [])),
+    params(
+        ("id" = Uuid, Path, description = "UUID списка")
+    ),
+    request_body = UpdateListRequest,
+    responses(
+        (status = 200, description = "Обновлённый список", body = ListResponse),
+        (status = 401, description = "Не авторизован", body = crate::dto::ErrorResponse),
+        (status = 404, description = "Список не найден", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn update(
     State(state): State<AppState>,
     user: AuthUser,
@@ -65,7 +115,21 @@ pub async fn update(
     Ok(Json(list))
 }
 
-/// DELETE /lists/:id — удалить список.
+/// DELETE /lists/{id} — удалить список.
+#[utoipa::path(
+    delete,
+    path = "/lists/{id}",
+    tag = "Lists",
+    security(("bearer_auth" = [])),
+    params(
+        ("id" = Uuid, Path, description = "UUID списка")
+    ),
+    responses(
+        (status = 204, description = "Список удалён"),
+        (status = 401, description = "Не авторизован", body = crate::dto::ErrorResponse),
+        (status = 404, description = "Список не найден", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn delete(
     State(state): State<AppState>,
     user: AuthUser,

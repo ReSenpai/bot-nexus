@@ -9,7 +9,22 @@ use crate::middleware::auth::AuthUser;
 use crate::services;
 use crate::state::AppState;
 
-/// POST /lists/:list_id/tasks — создать задачу в списке.
+/// POST /lists/{list_id}/tasks — создать задачу в списке.
+#[utoipa::path(
+    post,
+    path = "/lists/{list_id}/tasks",
+    tag = "Tasks",
+    security(("bearer_auth" = [])),
+    params(
+        ("list_id" = Uuid, Path, description = "UUID списка")
+    ),
+    request_body = CreateTaskRequest,
+    responses(
+        (status = 201, description = "Задача создана", body = TaskResponse),
+        (status = 401, description = "Не авторизован", body = crate::dto::ErrorResponse),
+        (status = 404, description = "Список не найден", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn create(
     State(state): State<AppState>,
     user: AuthUser,
@@ -24,7 +39,21 @@ pub async fn create(
     Ok((StatusCode::CREATED, Json(task)))
 }
 
-/// GET /lists/:list_id/tasks — все задачи списка.
+/// GET /lists/{list_id}/tasks — все задачи списка.
+#[utoipa::path(
+    get,
+    path = "/lists/{list_id}/tasks",
+    tag = "Tasks",
+    security(("bearer_auth" = [])),
+    params(
+        ("list_id" = Uuid, Path, description = "UUID списка")
+    ),
+    responses(
+        (status = 200, description = "Массив задач", body = Vec<TaskResponse>),
+        (status = 401, description = "Не авторизован", body = crate::dto::ErrorResponse),
+        (status = 404, description = "Список не найден", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn get_all(
     State(state): State<AppState>,
     user: AuthUser,
@@ -38,7 +67,22 @@ pub async fn get_all(
     Ok(Json(tasks))
 }
 
-/// GET /lists/:list_id/tasks/:task_id — одна задача.
+/// GET /lists/{list_id}/tasks/{task_id} — одна задача.
+#[utoipa::path(
+    get,
+    path = "/lists/{list_id}/tasks/{task_id}",
+    tag = "Tasks",
+    security(("bearer_auth" = [])),
+    params(
+        ("list_id" = Uuid, Path, description = "UUID списка"),
+        ("task_id" = Uuid, Path, description = "UUID задачи")
+    ),
+    responses(
+        (status = 200, description = "Найденная задача", body = TaskResponse),
+        (status = 401, description = "Не авторизован", body = crate::dto::ErrorResponse),
+        (status = 404, description = "Задача не найдена", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn get_one(
     State(state): State<AppState>,
     user: AuthUser,
@@ -52,7 +96,23 @@ pub async fn get_one(
     Ok(Json(task))
 }
 
-/// PUT /lists/:list_id/tasks/:task_id — обновить задачу.
+/// PUT /lists/{list_id}/tasks/{task_id} — обновить задачу.
+#[utoipa::path(
+    put,
+    path = "/lists/{list_id}/tasks/{task_id}",
+    tag = "Tasks",
+    security(("bearer_auth" = [])),
+    params(
+        ("list_id" = Uuid, Path, description = "UUID списка"),
+        ("task_id" = Uuid, Path, description = "UUID задачи")
+    ),
+    request_body = UpdateTaskRequest,
+    responses(
+        (status = 200, description = "Обновлённая задача", body = TaskResponse),
+        (status = 401, description = "Не авторизован", body = crate::dto::ErrorResponse),
+        (status = 404, description = "Задача не найдена", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn update(
     State(state): State<AppState>,
     user: AuthUser,
@@ -69,7 +129,22 @@ pub async fn update(
     Ok(Json(task))
 }
 
-/// DELETE /lists/:list_id/tasks/:task_id — удалить задачу.
+/// DELETE /lists/{list_id}/tasks/{task_id} — удалить задачу.
+#[utoipa::path(
+    delete,
+    path = "/lists/{list_id}/tasks/{task_id}",
+    tag = "Tasks",
+    security(("bearer_auth" = [])),
+    params(
+        ("list_id" = Uuid, Path, description = "UUID списка"),
+        ("task_id" = Uuid, Path, description = "UUID задачи")
+    ),
+    responses(
+        (status = 204, description = "Задача удалена"),
+        (status = 401, description = "Не авторизован", body = crate::dto::ErrorResponse),
+        (status = 404, description = "Задача не найдена", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn delete(
     State(state): State<AppState>,
     user: AuthUser,
