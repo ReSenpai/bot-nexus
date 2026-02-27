@@ -7,7 +7,18 @@ use crate::errors::AppError;
 use crate::services;
 use crate::state::AppState;
 
-/// Handler для POST /auth/register.
+/// POST /auth/register — регистрация нового пользователя.
+#[utoipa::path(
+    post,
+    path = "/auth/register",
+    tag = "Auth",
+    request_body = RegisterRequest,
+    responses(
+        (status = 201, description = "Пользователь создан", body = AuthResponse),
+        (status = 409, description = "Email уже занят", body = crate::dto::ErrorResponse),
+        (status = 422, description = "Невалидные данные", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn register(
     State(state): State<AppState>,
     Json(body): Json<RegisterRequest>,
@@ -19,7 +30,17 @@ pub async fn register(
     Ok((StatusCode::CREATED, Json(AuthResponse { token })))
 }
 
-/// Handler для POST /auth/login.
+/// POST /auth/login — вход существующего пользователя.
+#[utoipa::path(
+    post,
+    path = "/auth/login",
+    tag = "Auth",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Успешный вход", body = AuthResponse),
+        (status = 401, description = "Неверные учётные данные", body = crate::dto::ErrorResponse)
+    )
+)]
 pub async fn login(
     State(state): State<AppState>,
     Json(body): Json<LoginRequest>,
